@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudfront Custom Proxy
+After=network.target
+
+[Service]
+ExecStart=/opt/cloudfront_custom_proxy
+Restart=always
+RestartSec=5
+User=nobody
+Group=nogroup
+
+[Install]
+WantedBy=multi-user.target
