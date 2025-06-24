@@ -8,6 +8,9 @@ build:
 run: build
 	./cloudfront_custom_proxy
 
+rundebug: build
+	DEBUG=true ./cloudfront_custom_proxy
+
 clean:
 	rm -f cloudfront_custom_proxy
 
