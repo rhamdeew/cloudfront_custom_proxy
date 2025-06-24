@@ -1,0 +1,73 @@
+name: Build Agent
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+# Add permissions section
+permissions:
+  contents: write # This is required for creating releases
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'
+    - name: Setup Go cache
+      uses: actions/cache@v3
+      if: hashFiles('go.sum') != ''
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Build for all platforms
+      run: |
+        mkdir -p releases
+        # Build function
+        build() {
+          os=$1
+          arch=$2
+          output="cloudfront_custom_proxy-${os}-${arch}"
+          if [ "$os" = "windows" ]; then
+            output="${output}.exe"
+          fi
+          echo "Building for ${os}/${arch}..."
+          GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -ldflags="-s -w" -o "releases/${output}"
+          cd releases
+          if [ "$os" = "windows" ]; then
+            zip "${output}.zip" "${output}"
+          else
+            tar -czvf "${output}.tar.gz" "${output}"
+          fi
+          cd ..
+          rm "releases/${output}"
+        }
+        # Build for various platforms
+        build linux amd64
+        build linux arm64
+        build linux arm
+        build windows amd64
+        build darwin amd64
+        build darwin arm64
+        ls -la releases/
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: binaries
+        path: releases/
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/v')
+      with:
+        files: releases/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
