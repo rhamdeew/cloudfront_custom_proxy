@@ -45,6 +45,11 @@ jobs:
           cd releases
           if [ "$os" = "windows" ]; then
             zip "${output}.zip" "${output}"
+          elif [ "$os" = "linux" ]; then
+            # For Linux builds, include the service file
+            cp ../cloudfront_custom_proxy.service .
+            tar -czvf "${output}.tar.gz" "${output}" "cloudfront_custom_proxy.service"
+            rm cloudfront_custom_proxy.service
           else
             tar -czvf "${output}.tar.gz" "${output}"
           fi
